@@ -1,0 +1,998 @@
+#!bin/bash
+#Shell script to check whether a given string is a palindrome or not(bash Palindrome.sh)
+#the reverse of the string using inbuilt function
+echo -ne "Enter a string: "
+read str1
+echo -ne "The reversed string is: "
+echo $str1 | rev
+length=${#str1}
+
+#Generic reversal method through looping to find the reverse of string and check for palindrome"
+for((i=$length-1; i>=0; i--))
+do
+    REV=$REV${str1:$i:1}
+done
+echo -ne "The reverse of the string using looping is : "
+echo $REV
+if [ $str1 == $REV ]
+then
+    echo "$str1 is a palindrome"
+else
+    echo "$str1 is not a palindrome"
+fi
+
+***************************************************************************************************
+/*  C program to implement SJF(Preemptive) CPU Scheduling Algorithm
+    Name of the program: SJFPreemptive.c
+*/
+
+#include<stdio.h>
+#include<stdbool.h>
+#include<limits.h>
+
+struct Process
+{
+    int PID;
+    unsigned int ArrivalTime;
+    unsigned int BurstTime;
+    unsigned int StartTime;
+    unsigned int CompletionTime;
+    unsigned int TurnAroundTime;
+    unsigned int WaitingTime;
+    unsigned int ResponseTime;
+};
+
+unsigned int CurrentTime = 0;  //To track current time of execution
+unsigned int Completed = 0; //To track number of processes that has completed its execution at a particular point of time
+bool IsFirstProcess = true;
+int MinIndex;//To store index of the process having least burst time at current time
+int MinimumBurstTime;//To store actual CPU burst time at current time
+
+float SumTurnAroundTime = 0, SumWaitingTime = 0, SumResponseTime = 0, TotalCPUIdleTime = 0, PreviousProcessCompletionTime = 0, LengthCycle, CPUUtilization;
+
+int FindMax(int a, int b)
+{
+    return a > b ? a : b;
+}
+
+int FindMin(int a, int b)
+{
+    return a < b ? a : b;
+}
+
+void CTTaTWTRT(struct Process P[],int n, bool IsCompleted[])
+{
+    P[MinIndex].CompletionTime = CurrentTime;
+    P[MinIndex].TurnAroundTime = P[MinIndex].CompletionTime - P[MinIndex].ArrivalTime;
+    P[MinIndex].WaitingTime = P[MinIndex].TurnAroundTime - P[MinIndex].BurstTime;
+    P[MinIndex].ResponseTime = P[MinIndex].StartTime - P[MinIndex].ArrivalTime;       
+    SumTurnAroundTime += P[MinIndex].TurnAroundTime;
+    SumWaitingTime += P[MinIndex].WaitingTime;
+    SumResponseTime += P[MinIndex].ResponseTime;
+    Completed++;
+    IsCompleted[MinIndex] = true;
+}
+
+void FindMinimumBurstTimeProcess(struct Process P[],int n, bool IsCompleted[], int BurstTimeRemaining[])
+{
+    while(Completed != n)
+    {
+        //Find process with Minuimum Burst Time in ready queue at current time
+        MinIndex = -1;
+        MinimumBurstTime = INT_MAX;
+        for(int i = 0; i < n; i++) 
+        {
+            if(P[i].ArrivalTime <= CurrentTime && IsCompleted[i] == false) 
+            {
+                if(BurstTimeRemaining[i] < MinimumBurstTime)
+                {
+                    MinimumBurstTime = BurstTimeRemaining[i];
+                    MinIndex = i;
+                }
+                if(BurstTimeRemaining[i] == MinimumBurstTime)
+                {
+                    if(P[i].ArrivalTime < P[MinIndex].ArrivalTime)
+                    {
+                        MinimumBurstTime = BurstTimeRemaining[i];
+                        MinIndex = i;
+                    }
+                }
+            }
+        }
+        if(MinIndex == -1)
+        {
+            printf("|idle ");
+            CurrentTime++;
+        }
+        else
+        {
+            if(BurstTimeRemaining[MinIndex] == P[MinIndex].BurstTime)
+            {
+                P[MinIndex].StartTime = CurrentTime;
+                TotalCPUIdleTime += (IsFirstProcess == true) ? P[MinIndex].ArrivalTime : (P[MinIndex].StartTime -  PreviousProcessCompletionTime);
+                IsFirstProcess = false;
+            }
+            printf("|P%d(1)%d ",P[MinIndex].PID, CurrentTime+1);
+            BurstTimeRemaining[MinIndex] -= 1;
+            CurrentTime++; 
+            PreviousProcessCompletionTime = CurrentTime;
+            if(BurstTimeRemaining[MinIndex] == 0)
+            {
+                CTTaTWTRT(P, n, IsCompleted);
+                
+            }
+        }
+    }
+}
+
+void ProcessDetails(struct Process P[],int n, bool IsCompleted[], int BurstTimeRemaining[])
+{
+    for(int i = 0; i < n; i++)
+    {
+        printf("\nEnter Process-ID: "); scanf("%d",&P[i].PID);
+        printf("Enter Arrival Time: "); scanf("%d",&P[i].ArrivalTime);
+        printf("Enter CPU Burst Time: "); scanf("%d",&P[i].BurstTime);
+        IsCompleted[i] = false;
+        BurstTimeRemaining[i] = P[i].BurstTime;
+    }
+}
+
+void Display(struct Process P[],int n)
+{
+    int MaxCompletionTime = INT_MIN;
+    int MinArrivalTime = INT_MAX;
+    for(int i = 0; i < n; i++)
+    {
+        MaxCompletionTime = FindMax(MaxCompletionTime, P[i].CompletionTime);
+        MinArrivalTime = FindMin(MinArrivalTime, P[i].ArrivalTime);
+    }
+    LengthCycle = MaxCompletionTime - MinArrivalTime;
+    
+    printf("\nProcess ID\tArrival Time\tCPU Burst Time\tCompletion Time\tTurn Around Time\tWaiting Time\tResponse Time\n");
+    for(int i = 0; i < n; i++)
+        printf("%d\t\t%d\t%d\t\t%d\t%d\t%d\t%d\n",P[i].PID, P[i].ArrivalTime, P[i].BurstTime, P[i].CompletionTime, P[i].TurnAroundTime, P[i].WaitingTime, P[i].ResponseTime);
+
+    CPUUtilization = (LengthCycle - TotalCPUIdleTime) / LengthCycle;
+    
+    
+    printf("\nAverage Turn Around time = %.2f ms",SumTurnAroundTime / n);
+    printf("\nAverage Waiting Time = %.2f ms",SumWaitingTime / n);
+    printf("\nAverage Response Time = %.2f ms",SumResponseTime / n);
+    printf("\nThroughput = %.2f", n / LengthCycle);    
+    printf("\nCPU Utilization(in Percentage) = %.2f", CPUUtilization * 100);
+}
+
+int main()
+{
+    int n;
+    printf("Enter total number of processes: ");    scanf("%d",&n);
+    struct Process P[n];
+    int BurstTimeRemaining[n];
+    bool IsCompleted[n];
+    ProcessDetails(P,n,IsCompleted,BurstTimeRemaining);
+    printf("\nGantt Chart: \n\n");
+    FindMinimumBurstTimeProcess(P,n,IsCompleted,BurstTimeRemaining);
+    printf("|\n\n");
+    Display(P,n);
+    return 0;
+}
+
+***************************************************************************************************
+***************************************************************************************************
+#!bin/bash
+#Shell Script to generate prime numbers in a given range
+echo -ne "Enter lower bound of the interval: "
+read a
+echo -ne "Enter upper bound of the interval: "
+read b
+echo -ne "Prime numbers in the range $a and $b is/are: "
+for((i=$a; i<=b; i++))
+do
+  if [[ $i == 0 || $i == 1 ]]; then
+    continue
+  fi
+  
+  count=0
+  for((j=1; j<=i; j++))
+  do
+    if [ $((i%j)) == 0 ]; then
+      count=$((count+1))
+    fi
+  done
+  if [ $count == 2 ]; then
+    echo -ne "$i "
+  fi
+done
+echo 
+
+***************************************************************************************************
+/*  C program to implemnt Preemptive Priority CPU scheduling algorithm
+    Name of the program: PriorityPreemptive.c
+*/
+
+#include<stdio.h>
+
+struct Process
+{
+    int PID, Priority;
+    unsigned int ArrivalTime;
+    unsigned int BurstTime;
+    unsigned int StartTime;
+    unsigned int CompletionTime;
+    unsigned int TurnAroundTime;
+    unsigned int WaitingTime;
+    unsigned int ResponseTime;
+}P[10];
+
+unsigned int BurstTimeRemaining[10];
+
+void ProcessDetails(int n)
+{
+    for(int i = 0; i < n; i++)
+    {
+        printf("\nEnter Process-ID: "); scanf("%d",&P[i].PID);
+        printf("Enter Arrival Time: "); scanf("%d",&P[i].ArrivalTime);
+        printf("Enter CPU Burst Time: "); scanf("%d",&P[i].BurstTime);
+        printf("Enter Process Priority: "); scanf("%d",&P[i].Priority);
+        BurstTimeRemaining[i] = P[i].BurstTime;
+    } 
+}
+
+void SelectProcess(int n)
+{
+    int t, count = 0, ShortProcess;
+    float TotalWaitingTime = 0, TotalTurnAroundTime = 0, AvgWaitingTime, AvgTurnAroundTime;
+    
+    // we initialize the burst time of a process with maximum 
+    P[9].Priority = 10000;//9
+    
+    for(t = 0; count != n; t++)
+    {
+        ShortProcess = 9;//9
+        for(int i = 0; i < n; i++)
+            if(P[ShortProcess].Priority > P[i].Priority && P[i].ArrivalTime <= t && P[i].BurstTime > 0)
+                ShortProcess = i;
+                
+        if(ShortProcess == 9)
+        {
+            printf("Idle %d",t+1);
+        }
+        
+        P[ShortProcess].BurstTime = P[ShortProcess].BurstTime - 1;
+        printf("|P%d(1) %d",P[ShortProcess].PID,(t+1));
+        
+        // if any process is completed
+        if(P[ShortProcess].BurstTime == 0)
+        {
+            // If one process is completed, count increases by 1
+            count++;
+            P[ShortProcess].WaitingTime = t + 1 - P[ShortProcess].ArrivalTime - BurstTimeRemaining[ShortProcess];
+            P[ShortProcess].TurnAroundTime = t + 1 - P[ShortProcess].ArrivalTime;
+            
+            // total calculation
+            TotalWaitingTime += P[ShortProcess].WaitingTime;
+            TotalTurnAroundTime += P[ShortProcess].TurnAroundTime;
+            
+        }
+    }
+    
+    AvgWaitingTime = TotalWaitingTime / n;
+    AvgTurnAroundTime = TotalTurnAroundTime / n;
+    // Printing of the results
+    printf("|\n\nID WT TAT\n");
+    for(int i=0;i<n;i++)
+    {
+        printf("%d\t%d\t%d\n",P[i].PID,P[i].WaitingTime,P[i].TurnAroundTime);
+    }
+    
+    printf("Avg waiting time is: %f\n",AvgWaitingTime);
+    printf("Avg turn around time is: %f",AvgTurnAroundTime);;
+}
+
+int main()
+{
+    int n;
+    printf("Enter number of process: ");    scanf("%d",&n);
+    ProcessDetails(n);
+    printf("Gantt Chart:\n\n");
+    SelectProcess(n);
+}
+
+***************************************************************************************************
+***************************************************************************************************
+#!/bin/bash
+#Shell script to find largest of n numbers, storing numbers in an array.
+echo "Enter the Elements of The Array "
+read -a A
+max=0
+for i in ${A[@]}
+  do
+    if [ $i -gt $max ] ; then
+      max=$i
+    fi
+  done 
+
+echo "Largest element in the array is : $max"
+
+***************************************************************************************************
+Round Robin
+***************************************************************************************************
+***************************************************************************************************
+Addition of two matrices
+***************************************************************************************************
+/*  C program to implemnt Non Preemptive Priority Scheduling Algorithm
+    Name of the program: PriorityNonPreemptive.c
+*/
+
+#include<stdio.h>
+#include<stdbool.h>
+#include<limits.h>
+
+struct Process
+{
+    int PID, Priority;
+     int ArrivalTime;
+     int BurstTime;
+     int CompletionTime;
+     int TurnAroundTime;
+     int WaitingTime;
+     int ResponseTime;
+};
+
+int CheckArrivalTime = 0;
+
+void ProcessDetails(struct Process P[], int n)
+{
+    for(int i = 0; i < n; i++)
+    {
+        printf("\nEnter Process-ID: "); scanf("%d",&P[i].PID);
+        printf("Enter Arrival Time: "); scanf("%d",&P[i].ArrivalTime);
+        printf("Enter CPU Burst Time: "); scanf("%d",&P[i].BurstTime);
+        printf("Enter Process Priority: "); scanf("%d",&P[i].Priority);
+
+        //To check arrival time of the processes are same or different
+        if(i == 0)
+         CheckArrivalTime = P[i].ArrivalTime;
+         
+        if(CheckArrivalTime != P[i].ArrivalTime)
+         CheckArrivalTime = 1;
+    } 
+}
+
+void SortProcessArrivalTime(struct Process P[],int n)
+{
+    struct Process temp;
+    for(int i = 0; i < (n - 1); i++)
+    {
+        for(int j = i + 1; j < n; j++)
+        {
+            if(P[i].ArrivalTime > P[j].ArrivalTime)
+            {
+                temp = P[i];
+                P[i] = P[j];
+                P[j] = temp;
+            }
+        }
+    }
+} 
+void Swap(int *b,int *c)
+{
+    int temp;
+    temp = *c;
+    *c = *b;
+    *b = temp;
+}
+void SortProcessPID(struct Process P[],int n)
+{
+    struct Process temp;
+    for(int i = 0; i < (n - 1); i++)
+    {
+        for(int j = i + 1; j < n; j++)
+        {
+            if(P[i].PID > P[j].PID)
+            {
+                temp = P[i];
+                P[i] = P[j];
+                P[j] = temp;
+            }
+        }
+    }
+} 
+
+void SelectProcess(struct Process P[], int n)
+{
+    int CompletionTime = 0;
+    float TotalWaiingTime = 0, TotalTurnAroundTime = 0, AvgWaitingTime, AvgTurnAroundTime;
+    
+    // If all the process are arrived at different time
+    if(CheckArrivalTime == 1)
+    {
+        P[0].WaitingTime = P[0].ArrivalTime;
+        P[0].TurnAroundTime = P[0].BurstTime - P[0].ArrivalTime;
+        CompletionTime = P[0].TurnAroundTime;
+        TotalWaiingTime += P[0].WaitingTime;
+        TotalTurnAroundTime += P[0].TurnAroundTime;
+        printf("|P%d(%d)",P[0].PID,P[0].BurstTime);
+
+        for(int i = 1; i < n; i++)
+        {
+            int Min = P[i].Priority;
+            for(int j = i + 1; j < n; j++)
+            {
+                if(Min > P[j].Priority && P[j].ArrivalTime <= CompletionTime)
+                {
+                    Min = P[j].Priority;
+                    Swap(&P[i].PID, &P[j].PID);
+                    Swap(&P[i].ArrivalTime, &P[j].ArrivalTime);
+                    Swap(&P[i].BurstTime, &P[j].BurstTime);
+                    Swap(&P[i].Priority, &P[j].Priority);    
+                }
+                
+            }
+            printf("|P%d(%d)",P[i].PID,P[i].BurstTime);
+
+            P[i].WaitingTime = CompletionTime - P[i].ArrivalTime;
+            TotalWaiingTime += P[i].WaitingTime;
+            CompletionTime += P[i].BurstTime;
+            
+            // Turn Around Time of the process = CompletionTime -ArrivalTime
+            P[i].TurnAroundTime = CompletionTime - P[i].ArrivalTime;
+            TotalTurnAroundTime += P[i].TurnAroundTime;
+            
+        }
+    }
+    // If all the process are arrived at same time
+    else
+    {
+        for(int i = 0; i < n; i++)
+        {
+            int Min = P[i].Priority;
+            for(int j = i+1; j < n; j++)
+            {
+                if(Min > P[j].Priority && P[j].ArrivalTime <= CompletionTime)
+                {
+                    Min = P[j].Priority;
+                    Swap(&P[i].PID, &P[j].PID);
+                    Swap(&P[i].ArrivalTime, &P[j].ArrivalTime);
+                    Swap(&P[i].BurstTime, &P[j].BurstTime);
+                    Swap(&P[i].Priority, &P[j].Priority);
+                }
+                
+            }
+            printf("|P%d(%d)",P[i].PID,P[i].BurstTime);
+            P[i].WaitingTime = CompletionTime - P[i].ArrivalTime;
+            //Completion time of the process
+            CompletionTime += P[i].BurstTime;
+            
+            // Turn Around Time of the process
+            // compl-Arrival
+            P[i].TurnAroundTime = CompletionTime - P[i].ArrivalTime;
+            TotalWaiingTime += P[i].WaitingTime;
+            TotalTurnAroundTime += P[i].TurnAroundTime;  
+        }
+        
+    }
+    
+    AvgWaitingTime = TotalWaiingTime / n;
+    AvgTurnAroundTime = TotalTurnAroundTime / n;
+    SortProcessPID(P,n);
+    // Printing of the results
+    printf("|\n\nID WT TAT\n");
+    for(int i=0;i<n;i++)
+    {
+        printf("%d\t%d\t%d\n",P[i].PID,P[i].WaitingTime,P[i].TurnAroundTime);
+    }
+    
+    printf("Avg waiting time is: %f\n",AvgWaitingTime);
+    printf("Avg turn around time is: %f",AvgTurnAroundTime);
+}
+
+int main()
+{
+    int n;
+    printf("Enter total number of processes: ");    scanf("%d",&n);
+    struct Process P[n];
+    ProcessDetails(P,n);
+
+    if(CheckArrivalTime == 1)
+        SortProcessArrivalTime(P,n);
+    
+    printf("Gantt Chart:\n\n");
+    SelectProcess(P,n);
+    return 0;
+    
+}
+
+***************************************************************************************************
+/*  C program to demonstrate the use of I/O system calls for file I/O( read, write, open, lseek)
+    Name of the program: IOSystemCallsFileIO.c
+*/
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <fcntl.h>
+
+#define BUFFER_SIZE 30
+
+int main()
+{
+    int fd, n;
+    char buffer[BUFFER_SIZE];
+    fd = open("m6.txt", O_RDWR);
+    //open(const char *__file, int __oflag, int mode)
+    /*path to file which you want to use; flags-O_RDONLY: read only, O_WRONLY: write only, O_RDWR: read and write, O_CREAT: create file if it doesn’t exist, O_EXCL: prevent creation if it already exists*/ 
+    printf("File discriptor is %d\n", fd);
+    if (fd == -1) 
+    {
+        printf("Failed to open file.\n");
+        exit(0);
+    }
+    printf("Reading first 10 characters from file: \n");
+    n = read(fd, buffer, 10);
+    write(1, buffer, n);
+    //lseek is a system call that is used to change the location of the read/write pointer of a file descriptor
+    printf("\nSkipping 5 characters from current position in the file: \n");
+    lseek(fd, 5, SEEK_CUR);//SEEK_CUR - the file offset shall be set to its current location plus offset.
+    n = read(fd, buffer, 10);
+    write(1, buffer, n);
+    printf("\nGoing 10 characters before the current position in the file: \n");
+    lseek(fd, -10, SEEK_CUR);
+    n = read(fd, buffer, 10);
+    write(1, buffer, n);
+    printf("\nGoing to 5th last character in the file: \n");
+    lseek(fd, -5, SEEK_END);//SEEK_END -the file offset shall be set to the size of the file plus offset*/
+    n = read(fd, buffer, 7);
+    write(1, buffer, 5);
+    printf("\nGoing to the 3rd character in the file: \n");
+    lseek(fd, 3, SEEK_SET);//SEEK_SET-the file offset shall be set to offset bytes.
+    n = read(fd, buffer, 5);
+    write(1, buffer, n);
+    return 0;
+}
+***************************************************************************************************
+/*  C program to implement First Come First Serve CPU Scheduling Algorithm
+    Name of the program: FCFS.c
+*/
+
+#include<stdio.h>
+#include<stdlib.h>
+
+struct Process
+{
+    int PID;
+    unsigned int ArrivalTime;
+    unsigned int BurstTime;
+    unsigned int StartTime;
+    unsigned int CompletionTime;
+    unsigned int TurnAroundTime;
+    unsigned int WaitingTime;
+    unsigned int ResponseTime;
+};
+
+float SumTurnAroundTime = 0, SumWaitingTime = 0, SumResponseTime = 0, TotalCPUIdleTime = 0;
+float LengthCycle = 0;
+
+void SortProcessArrivalTime(struct Process P[],int n)
+{
+    struct Process temp;
+    for(int i = 0; i < (n - 1); i++)
+    {
+        for(int j = i + 1; j < n; j++)
+        {
+            if(P[i].ArrivalTime > P[j].ArrivalTime)
+            {
+                temp = P[i];
+                P[i] = P[j];
+                P[j] = temp;
+            }
+        }
+    }
+} 
+
+void ProcessDetails(struct Process P[],int n)
+{
+    for(int i = 0; i < n; i++)
+    {
+        printf("\nEnter Process-ID: "); scanf("%d",&P[i].PID);
+        printf("Enter Arrival Time: "); scanf("%d",&P[i].ArrivalTime);
+        printf("Enter CPU Burst Time: "); scanf("%d",&P[i].BurstTime);
+        
+    } 
+}
+
+void SortProcessPID(struct Process P[],int n)
+{
+    struct Process temp;
+    for(int i = 0; i < (n - 1); i++)
+    {
+        for(int j = i + 1; j < n; j++)
+        {
+            if(P[i].PID > P[j].PID)
+            {
+                temp = P[i];
+                P[i] = P[j];
+                P[j] = temp;
+            }
+        }
+    }
+} 
+
+int FindMax(int a, int b)
+{
+    return a > b ? a : b;
+}
+
+void GanttChart(struct Process P[], int i)
+{
+    int GTChart = 0;
+    if(P[0].StartTime != 0)
+    {
+        while(GTChart != P[0].StartTime)
+        {
+            printf(" ");
+            GTChart++;
+        }
+        return;
+    }
+    if(P[i].StartTime == 0)
+    {
+        printf("|");
+        printf("P%d(%d)",P[i].PID, P[i].BurstTime);
+        while(GTChart != P[i].BurstTime)
+        {
+            printf(" ");
+            GTChart++;
+        }
+    }
+    else
+    {
+        printf("|");
+        printf("P%d(%d)",P[i].PID, P[i].BurstTime);
+        while(GTChart != P[i].BurstTime)
+        {
+            printf(" ");
+            GTChart++;
+        }
+    }
+    if(P[i].CompletionTime < P[i + 1].ArrivalTime)
+    {
+        printf("|");
+        while(GTChart != (P[i + 1].ArrivalTime -  P[i].CompletionTime))
+        {
+            printf("  ");
+            GTChart++;
+        }
+    }
+}
+
+void CTTaTWTRT(struct Process P[],int n)
+{
+    for(int i = 0; i < n; i++)
+    {
+        P[i].StartTime = (i == 0) ? P[i].ArrivalTime : FindMax(P[i].ArrivalTime, P[i - 1].CompletionTime);  
+        P[i].CompletionTime =  P[i].StartTime + P[i].BurstTime;
+        P[i].TurnAroundTime = P[i].CompletionTime - P[i].ArrivalTime;       
+        P[i].WaitingTime =  (i == 0) ? 0 : (P[i].TurnAroundTime - P[i].BurstTime);
+        P[i].ResponseTime =  (i == 0) ? 0 : P[i].WaitingTime;
+       
+        SumTurnAroundTime += P[i].TurnAroundTime;
+        SumWaitingTime += P[i].WaitingTime;
+        SumResponseTime += P[i].ResponseTime;
+        TotalCPUIdleTime += (i == 0) ? P[i].ArrivalTime : (P[i].StartTime -  P[i-1].CompletionTime);
+        GanttChart(P, i);
+    }
+}
+
+void Display(struct Process P[], int n)
+{
+    float AvgTurnAroundTime = (SumTurnAroundTime / n);
+    printf("\nAverage Turn Around Time = %.2f ms",AvgTurnAroundTime);
+    float AvgWaitingTime = (SumWaitingTime / n);
+    printf("\nAverage Waiting Time = %.2f ms",AvgWaitingTime);
+    float AvgResponseTime = (SumResponseTime / n);
+    printf("\nAverage Response Time = %.2f ms",AvgResponseTime);
+    LengthCycle = P[n - 1].CompletionTime - P[0].StartTime;
+    printf("\nThroughput = %.2f",(n / LengthCycle));
+    float CPUUtilization = (LengthCycle - TotalCPUIdleTime) / LengthCycle * 100;
+    printf("\nCPU Utilization(in Percentage) = %.2f ",CPUUtilization);
+}
+
+void DisplayTable(struct Process P[], int n)
+{
+    printf("\nProcess ID\tArrival Time\tCPU Burst Time\tCompletion Time\tTurn Around Time\tWaiting Time\tResponse Time\n");
+    for(int i = 0; i < n; i++)
+        printf("    %d\t\t    %d\t\t      %d\t\t     %d\t\t\t%d\t\t   %d\t\t    %d\n",P[i].PID, P[i].ArrivalTime ,P[i].BurstTime, P[i].CompletionTime ,P[i].TurnAroundTime, P[i].WaitingTime, P[i].ResponseTime);
+
+    Display(P,n);
+}
+
+int main()
+{
+    int n;
+    printf("Enter number of processes: "); scanf("%d",&n);
+    struct Process P[n];
+    ProcessDetails(P,n);
+    SortProcessArrivalTime(P,n);
+    printf("\n\nGantt Chart: \n\n");
+    CTTaTWTRT(P, n);
+    SortProcessPID(P,n);
+    printf("|\n\n");
+    DisplayTable(P,n);
+   
+}
+
+***************************************************************************************************
+***************************************************************************************************
+/*  C program to demonstrate Zombie process
+    Name of the program: Zombie.c 
+*/
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() 
+{
+    pid_t child_pid, my_pid, parent_pid;
+    child_pid = fork();
+    if (child_pid < 0) 
+    {
+        printf("Fork failed. Exiting!\n");
+        exit(0);
+    }
+    if (child_pid == 0) 
+    {
+        // Child process
+        printf("[CHILD] This is the child process.\n");
+        my_pid = getpid();
+        parent_pid = getppid();
+        printf("[CHILD] My pid is %d\n", my_pid);
+        printf("[CHILD] My parent's pid is %d\n", parent_pid);
+        printf("[CHILD] Exiting.\n");
+        exit(0);
+    } 
+    else 
+    {
+        // Parent process
+        printf("[PARENT] This is the parent process.\n");
+        my_pid = getpid();
+        parent_pid = getppid();
+        printf("[PARENT] My pid is %d\n", my_pid);
+        printf("[PARENT] My parent's pid is %d\n", parent_pid);
+        printf("[PARENT] Sleeping for 10 seconds.\n");
+        sleep(10);
+        printf("[PARENT] Child pid = %d has ended, but it has an entry in process table. It is a zombie process.\n", child_pid);
+    }
+    return 0;
+}
+
+OUTPUT:
+[PARENT] This is the parent process.
+[PARENT] My pid is 153
+[PARENT] My parent's pid is 152
+[PARENT] Sleeping for 10 seconds.
+[CHILD] This is the child process.
+[CHILD] My pid is 157
+[CHILD] My parent's pid is 153
+[CHILD] Exiting.
+[PARENT] Child pid = 157 has ended, but it has an entry in process table. It is a zombie process.
+
+***************************************************************************************************
+/*  C program to demonstrate Zombie process
+    Name of the program: Orphan.c 
+*/
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() 
+{
+    pid_t child_pid, my_pid, parent_pid;
+    child_pid = fork();
+    if (child_pid < 0) 
+    {
+        printf("Fork failed. Exiting!\n");
+    exit(0);
+    }
+    if (child_pid == 0) 
+    {
+        // Child process
+        printf("[CHILD] This is the child process.\n");
+        my_pid = getpid();  
+        parent_pid = getppid();
+        printf("[CHILD] My pid is %d\n", my_pid);
+        printf("[CHILD] My parent's pid is %d\n", parent_pid);
+        printf("[CHILD] Sleeping for 10 seconds.\n");   
+        sleep(10);
+        printf("[CHILD] My parent ended. So I am an orphan process adopted by init process.\n");
+    } 
+    else 
+    {
+        // Parent process
+        printf("[PARENT] This is the parent process.\n");
+        my_pid = getpid();  
+        parent_pid = getppid();
+        printf("[PARENT] My pid is %d\n", my_pid);
+        printf("[PARENT] My parent's pid is %d\n", parent_pid);
+        printf("[PARENT] Exiting.\n");
+        exit(0);
+    }
+    return 0;
+}
+
+OUTPUT:
+[PARENT] This is the parent process.
+[PARENT] My pid is 804
+[PARENT] My parent's pid is 803
+[PARENT] Exiting.
+[CHILD] This is the child process.
+[CHILD] My pid is 808
+[CHILD] My parent's pid is 804
+[CHILD] Sleeping for 10 seconds.
+
+***************************************************************************************************
+/*  C program to implement SJF(Non Preemptive) CPU Scheduling Algorithm
+    Name of the program: SJFNonPreemptive.c
+*/
+#include<stdio.h>
+#include<stdbool.h>
+#include<limits.h>
+
+struct Process
+{
+    int PID;
+    unsigned int ArrivalTime;
+    unsigned int BurstTime;
+    unsigned int StartTime;
+    unsigned int CompletionTime;
+    unsigned int TurnAroundTime;
+    unsigned int WaitingTime;
+    unsigned int ResponseTime;
+};
+
+unsigned int CurrentTime = 0;  //To track current time of execution
+unsigned int Completed = 0; //To track number of processes that has completed its execution
+bool IsFirstProcess = true;
+int MinIndex;//To store index of the process having least burst time at current time
+int MinimumBurstTime;//To store actual CPU burst time at current time
+
+float SumTurnAroundTime = 0, SumWaitingTime = 0, SumResponseTime = 0, TotalCPUIdleTime = 0, PreviousProcessCompletionTime = 0, LengthCycle, CPUUtilization;
+
+int FindMax(int a, int b)
+{
+    return a > b ? a : b;
+}
+
+int FindMin(int a, int b)
+{
+    return a < b ? a : b;
+}
+
+
+void GanttChart(struct Process P[], int i)
+{
+    int GTChart = 0;
+    printf("|");
+    printf("P%d(%d)",P[i].PID, P[i].BurstTime);
+    while(GTChart != P[i].BurstTime)
+    {
+        printf(" ");
+        GTChart++;
+    }
+}
+
+void CTTaTWTRT(struct Process P[],int n, bool IsCompleted[])
+{
+    P[MinIndex].StartTime = (IsFirstProcess == true) ? P[MinIndex].ArrivalTime : CurrentTime;
+    P[MinIndex].CompletionTime =  P[MinIndex].StartTime +  P[MinIndex].BurstTime;
+    P[MinIndex].TurnAroundTime = P[MinIndex].CompletionTime - P[MinIndex].ArrivalTime;
+    P[MinIndex].WaitingTime = P[MinIndex].TurnAroundTime - P[MinIndex].BurstTime;
+    P[MinIndex].ResponseTime = P[MinIndex].WaitingTime;
+                  
+    SumTurnAroundTime += P[MinIndex].TurnAroundTime;
+    SumWaitingTime += P[MinIndex].WaitingTime;
+    SumResponseTime += P[MinIndex].ResponseTime;
+    TotalCPUIdleTime += (IsFirstProcess == true) ? P[MinIndex].ArrivalTime : (P[MinIndex].StartTime -  PreviousProcessCompletionTime);
+        
+    Completed++;
+    IsCompleted[MinIndex] = true;
+    CurrentTime = P[MinIndex].CompletionTime;
+    PreviousProcessCompletionTime = CurrentTime;
+    IsFirstProcess = false; 
+    
+}
+
+void FindMinimumBurstTimeProcess(struct Process P[],int n, bool IsCompleted[])
+{    
+    while(Completed != n)
+    {
+        //Find process with Minuimum Burst Time in ready queue at current time
+        MinIndex = -1;
+        MinimumBurstTime = INT_MAX;
+        for(int i = 0; i < n; i++)
+	    {
+            if(P[i].ArrivalTime <= CurrentTime && IsCompleted[i] == false) 
+            {
+                if(P[i].BurstTime < MinimumBurstTime)
+                {
+                    MinimumBurstTime = P[i].BurstTime;
+                    MinIndex = i;
+                }
+                if(P[i].BurstTime == MinimumBurstTime)
+                {
+                    if(P[i].ArrivalTime < P[MinIndex].ArrivalTime)
+                    {
+                        MinimumBurstTime = P[i].BurstTime;
+                        MinIndex = i;
+                    }
+                }
+            }
+        }
+        if(MinIndex == -1)
+        {
+            CurrentTime++;
+            printf("| ");
+        }
+        else
+        {
+            CTTaTWTRT(P,n,IsCompleted);
+            GanttChart(P,MinIndex);
+        }
+    }
+}
+
+void ProcessDetails(struct Process P[],int n, bool IsCompleted[])
+{
+    for(int i = 0; i < n; i++)
+    {
+        printf("\nEnter Process-ID: "); scanf("%d",&P[i].PID);
+        printf("Enter Arrival Time: "); scanf("%d",&P[i].ArrivalTime);
+        printf("Enter CPU Burst Time: "); scanf("%d",&P[i].BurstTime);
+        IsCompleted[i] = false;
+    }
+}
+
+void Display(struct Process P[],int n)
+{
+    int MaxCompletionTime = INT_MIN;
+    int MinArrivalTime = INT_MAX;
+    for(int i = 0; i < n; i++)
+    {
+        MaxCompletionTime = FindMax(MaxCompletionTime, P[i].CompletionTime);
+        MinArrivalTime = FindMin(MinArrivalTime, P[i].ArrivalTime);
+    }
+    LengthCycle = MaxCompletionTime - MinArrivalTime;
+    printf("\nProcess-ID\tArrival Time\tCPU Burst Time\tCompletion Time\tTurn Around Time\tWaiting Time\tResponse Time\n");
+    for(int i=0;i<n;i++)
+     printf("    %d\t\t    %d\t\t\t%d\t\t%d\t     %d\t\t\t     %d\t\t    %d\n",P[i].PID, P[i].ArrivalTime, P[i].BurstTime, P[i].CompletionTime, P[i].TurnAroundTime, P[i].WaitingTime, P[i].ResponseTime);    
+    
+    CPUUtilization = (LengthCycle - TotalCPUIdleTime) / LengthCycle;
+
+    printf("\nAverage Turn Around time= %.2f ms", (SumTurnAroundTime / n));
+    printf("\nAverage Waiting Time= %.2f ms", (SumWaitingTime / n));
+    printf("\nAverage Response Time= %.2f ms", (SumResponseTime / n));
+    printf("\nThroughput= %.2f", (n / LengthCycle));    
+    printf("\nCPU Utilization(in Percentage)= %.2f", CPUUtilization * 100);
+}
+
+
+int main()
+{
+    int n;
+    printf("Enter total number of processes: ");    scanf("%d",&n); 
+    struct Process P[n];   
+    bool IsCompleted[n];
+    ProcessDetails(P,n,IsCompleted);
+    printf("\nGantt Chart:\n\n");
+    FindMinimumBurstTimeProcess(P,n,IsCompleted);
+    printf("|\n\n");
+    Display(P,n);
+    return 0;
+}
+
+***************************************************************************************************
+***************************************************************************************************
